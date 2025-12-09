@@ -1,80 +1,46 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C6 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- | -------- |
+# ESP32-PoE SOEM Project
+<img src="docs/images/ESP32-POE.jpg" alt="ESP32-PoE-ISO Board" style="width:50%;height:auto;" />
 
-# Ethernet Example
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+ESP-IDF project for Olimex ESP32-PoE-ISO with EtherCAT master (SOEM).
 
-## Overview
+## Hardware
+- Olimex ESP32-PoE-ISO board
+- LAN8710A PHY
 
-This example demonstrates basic usage of `Ethernet driver` together with `esp_netif`. Initialization of the `Ethernet driver` is wrapped in separate [sub-component](./components/ethernet_init/ethernet_init.c) of this project to clearly distinguish between the driver's and `esp_netif` initializations. The work flow of the example could be as follows:
+## Configuration
+- PHY: LAN87xx, address 0
+- RMII clock: Internal APLL on GPIO 17
+- MDC: GPIO 23, MDIO: GPIO 18
+- PHY Power: GPIO 12
 
-1. Install Ethernet driver
-2. Attach the driver to `esp_netif`
-3. Send DHCP requests and wait for a DHCP lease
-4. If get IP address successfully, then you will be able to ping the device
-
-If you have a new Ethernet application to go (for example, connect to IoT cloud via Ethernet), try this as a basic template, then add your own code.
-
-## How to use example
-
-### Hardware Required
-
-To run this example, it's recommended that you have an official ESP32 Ethernet development board - [ESP32-Ethernet-Kit](https://docs.espressif.com/projects/esp-idf/en/latest/hw-reference/get-started-ethernet-kit.html). This example should also work for 3rd party ESP32 board as long as it's integrated with a supported Ethernet PHY chip. Up until now, ESP-IDF supports up to four Ethernet PHY: `LAN8720`, `IP101`, `DP83848` and `RTL8201`, additional PHY drivers should be implemented by users themselves.
-
-Besides that, `esp_eth` component can drive third-party Ethernet module which integrates MAC and PHY and provides common communication interface (e.g. SPI, USB, etc). This example will take the `DM9051`, `W5500` or `KSZ8851SNL` SPI modules as an example, illustrating how to install the Ethernet driver in the same manner.
-
-The ESP-IDF supports the usage of multiple Ethernet interfaces at a time when external modules are utilized which is also demonstrated by this example. There are several options you can combine:
-   * Internal EMAC and one SPI Ethernet module.
-   * Two SPI Ethernet modules of the same type connected to single SPI interface and accessed by switching appropriate CS.
-   * Internal EMAC and two SPI Ethernet modules of the same type.
-
-#### Pin Assignment
-
-See common pin assignments for Ethernet examples from [upper level](../README.md#common-pin-assignments).
-
-When using two Ethernet SPI modules at a time, they are to be connected to single SPI interface. Both modules then share data (MOSI/MISO) and CLK signals. However, the CS, interrupt and reset pins need to be connected to separate GPIO for each Ethernet SPI module.
-
-### Configure the project
-
-```
-idf.py menuconfig
-```
-
-See common configurations for Ethernet examples from [upper level](../README.md#common-configurations).
-
-### Build, Flash, and Run
-
-Build the project and flash it to the board, then run monitor tool to view serial output:
-
-```
-idf.py -p PORT build flash monitor
-```
-
-(Replace PORT with the name of the serial port to use.)
-
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the [Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for full steps to configure and use ESP-IDF to build projects.
-
-## Example Output
-
+## Build
+This project uses the [Espressif-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) for the ESP32 target and also the [SOEM project](https://github.com/OpenEtherCATsociety/SOEM) developed by the Open Ethercat Society as a library. The first step is to clone the library and then cmake install it. There are directions in the [Building SOEM](https://docs.rt-labs.com/soem/tutorials/building.html) below. This project uses SOEM built with [Option 2](https://docs.rt-labs.com/soem/tutorials/building.html#option-2-build-and-install-soem-separately). After SOEM is built and installed, continue with the directions in the code block text below.
 ```bash
-I (394) eth_example: Ethernet Started
-I (3934) eth_example: Ethernet Link Up
-I (3934) eth_example: Ethernet HW Addr 30:ae:a4:c6:87:5b
-I (5864) esp_netif_handlers: eth ip: 192.168.2.151, mask: 255.255.255.0, gw: 192.168.2.2
-I (5864) eth_example: Ethernet Got IP Address
-I (5864) eth_example: ~~~~~~~~~~~
-I (5864) eth_example: ETHIP:192.168.2.151
-I (5874) eth_example: ETHMASK:255.255.255.0
-I (5874) eth_example: ETHGW:192.168.2.2
-I (5884) eth_example: ~~~~~~~~~~~
+source ~/esp/v5.2.1/esp-idf/export.sh # or however you init your esp-idf toolchain 
+idf.py build
+idf.py -p /dev/ttyUSB0 flash monitor
 ```
 
-Now you can ping your ESP32 in the terminal by entering `ping 192.168.2.151` (it depends on the actual IP address you get).
+## SOEM Documentation
+[Introduction](https://docs.rt-labs.com/soem/index.html)
 
-## Troubleshooting
+[EtherCAT Overview](https://docs.rt-labs.com/soem/explanations/ethercat.html)
 
-See common troubleshooting for Ethernet examples from [upper level](../README.md#common-troubleshooting).
+### Tutorials
+[Building SOEM](https://docs.rt-labs.com/soem/tutorials/building.html)
 
-(For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you as soon as possible.)
+[Writing an application](https://docs.rt-labs.com/soem/tutorials/application.html)
+
+### How-to Guides
+[Mailbox cyclic handler](https://docs.rt-labs.com/soem/howtos/cyclic_mailbox.html)
+
+[Distributed clocks](https://docs.rt-labs.com/soem/howtos/dc.html)
+
+[ENI parser](https://docs.rt-labs.com/soem/howtos/eni_parser.html)
+
+[Ethtool](https://docs.rt-labs.com/soem/howtos/ethtool.html)
+
+### Reference
+[SOEM API](https://docs.rt-labs.com/soem/reference/api_reference.html)
+
+[Glossary](https://docs.rt-labs.com/soem/reference/glossary.html)
