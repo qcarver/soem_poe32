@@ -1,6 +1,6 @@
-idf_component_register(SRCS "main.c" "acquire.cpp"
+idf_component_register(SRCS "main.c" "acquire.cpp" "power_sensor.cpp" "motor_control.cpp" "scan_patterns.cpp"
                        INCLUDE_DIRS "."
-                       PRIV_REQUIRES ethernet_init esp_netif esp_eth esp_event driver)
+                       PRIV_REQUIRES ethernet_init esp_netif esp_eth esp_event driver esp_timer)
 
 # Add SOEM and Xeryon library paths
 target_include_directories(${COMPONENT_LIB} PUBLIC
