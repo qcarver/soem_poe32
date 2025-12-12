@@ -1,0 +1,6 @@
+[submodule "external/SOEM"]
+	path = external/SOEM
+	url = https://github.com/OpenEtherCATsociety/SOEM.git
+[submodule "external/xeryon_cpp_v2"]
+	path = external/xeryon_cpp_v2
+	url = https://github.com/qcarver/xeryon_cpp_v2.git
