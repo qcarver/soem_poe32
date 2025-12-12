@@ -1,4 +1,4 @@
-idf_component_register(SRCS "main.c"
+idf_component_register(SRCS "main.c" "acquire.cpp"
                        INCLUDE_DIRS "."
                        PRIV_REQUIRES ethernet_init esp_netif esp_eth esp_event driver)
 
