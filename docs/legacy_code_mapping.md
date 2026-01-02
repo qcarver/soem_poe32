@@ -8,11 +8,11 @@ This document maps the original CODESYS V3.5 PLC program to the ported ESP-IDF C
 
 | CODESYS Entity | C++ Equivalent | File |
 |----------------|----------------|------|
-| `PLC_PRG` main program | `acquire_run()` state machine | [acquire.cpp](../main/acquire.cpp) |
+| `PLC_PRG` main program | `acquire_update()` state machine | [acquire.cpp](../main/acquire.cpp) |
 | `GVL.Drive1` / `GVL.Drive2` | `motor_*()` functions | [motor_control.cpp](../main/motor_control.cpp) |
 | `Custom_I2C_Power_Sensor` | `power_sensor_*()` functions | [power_sensor.cpp](../main/power_sensor.cpp) |
 | `fbGenerateSpiral` | `generate_spiral()` | [scan_patterns.cpp](../main/scan_patterns.cpp) |
-| `fbExecuteSpiral` | State 4 logic in `acquire_run()` | [acquire.cpp](../main/acquire.cpp#L650) |
+| `fbExecuteSpiral` | State 4 logic in `acquire_update()` | [acquire.cpp](../main/acquire.cpp#L650) |
 | `fbFindPeak` | `find_peak_power()` | [scan_patterns.cpp](../main/scan_patterns.cpp) |
 | `fbFigure8Scan` | `figure8_position()` + State 7 | [scan_patterns.cpp](../main/scan_patterns.cpp) |
 | `AxisParams` structure | `axis_params_t` | [motor_control.h](../main/motor_control.h) |
@@ -225,7 +225,7 @@ END_VAR
 
 (* ═══════════════════════════════════════════════════════════════════════════
    INITIALIZATION / FIRST SCAN SETUP
-   [CPP:acquire.cpp - acquire_init() and first iteration of acquire_run()]
+   [CPP:acquire.cpp - acquire_init() and first iteration of acquire_update()]
    ═══════════════════════════════════════════════════════════════════════════ *)
 IF firstScan THEN
     systemState := 0;
@@ -273,7 +273,7 @@ GVL.power_uw := Custom_I2C_Power_Sensor.Power_uW;
 
 (* ═══════════════════════════════════════════════════════════════════════════
    STATE MACHINE
-   [CPP:acquire.cpp - acquire_run() function]
+   [CPP:acquire.cpp - acquire_update() function]
    ═══════════════════════════════════════════════════════════════════════════ *)
 CASE systemState OF
 
@@ -493,7 +493,7 @@ CASE systemState OF
             END_IF
         END_IF
         
-        (* C++ scan loop is inline in acquire_run() state 4 *)
+        (* C++ scan loop is inline in acquire_update() state 4 *)
 
     (* ─────────────────────────────────────────────────────────────────────────
        STATE 5: FIND PEAK POWER POSITION
