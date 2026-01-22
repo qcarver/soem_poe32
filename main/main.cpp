@@ -9,6 +9,8 @@
 #include <string.h>
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include "esp_event.h"
+#include "esp_netif.h"
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -31,6 +33,10 @@ extern "C" void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    // Initialize network stack and default event loop for Ethernet
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
     
     // Initialize I2C power sensor
     ESP_LOGI(TAG, "Initializing power sensor...");

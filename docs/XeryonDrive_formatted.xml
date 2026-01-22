@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EtherCATInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:noNamespaceSchemaLocation="EtherCATInfo.xsd" 
+              Version="1.6">
+  <Vendor>
+    <Id>#x4E</Id>
+    <Name>Xeryon bvba</Name>
+  </Vendor>
+
+  <Descriptions>
+    <Groups>
+      <Group SortOrder="0">
+        <Type>Motion</Type>
+        <Name LcId="1033">Motion</Name>
+      </Group>
+    </Groups>
+
+    <Devices>
+      <Device Physics="YY">
+        <Type ProductCode="#x0001" RevisionNo="#x1" CheckRevisionNo="EQ_OR_G">Drive</Type>
+        <Name LcId="1033">Drive</Name>
+        <GroupType>Motion</GroupType>
+        
+        <Fmmu>Outputs</Fmmu>
+        <Fmmu>Inputs</Fmmu>
+        
+        <!-- Sync Manager configuration -->
+        <!-- Output SM: Start address 0x1000, outputs go from master to slave -->
+        <Sm StartAddress="#x1000" ControlByte="#x64" Enable="1">Outputs</Sm>
+        <!-- Input SM: Start address 0x1200, inputs go from slave to master -->
+        <Sm StartAddress="#x1200" ControlByte="#x20" Enable="1">Inputs</Sm>
+
+        <!-- ====================================================================
+             RxPdo (Receive PDO) - PLC to DRIVE (Outputs)
+             Index: 0x1600 - Position control PDO
+             ==================================================================== -->
+        <RxPdo Fixed="1" Mandatory="1" Sm="0">
+          <Index>#x1600</Index>
+          <Name>Position</Name>
+          
+          <!-- Byte 0-3: Command/Controlword -->
+          <Entry>
+            <Index>#x2</Index>
+            <SubIndex>1</SubIndex>
+            <BitLen>32</BitLen>
+            <Name>Command</Name>
+            <DataType>UDINT</DataType>
+          </Entry>
+          
+          <!-- Byte 4-7: Target position (encoder counts) -->
+          <Entry>
+            <Index>#x2</Index>
+            <SubIndex>2</SubIndex>
+            <BitLen>32</BitLen>
+            <Name>Target position</Name>
+            <DataType>DINT</DataType>
+          </Entry>
+          
+          <!-- Byte 8-11: Speed (encoder counts/sec or mm/sec depending on stage) -->
+          <Entry>
+            <Index>#x2</Index>
+            <SubIndex>3</SubIndex>
+            <BitLen>32</BitLen>
+            <Name>Speed</Name>
+            <DataType>UDINT</DataType>
+          </Entry>
+          
+          <!-- Byte 12-13: Acceleration -->
+          <Entry>
+            <Index>#x2</Index>
+            <SubIndex>4</SubIndex>
+            <BitLen>16</BitLen>
+            <Name>Acceleration</Name>
+            <DataType>UINT</DataType>
+          </Entry>
+          
+          <!-- Byte 14-15: Deceleration -->
+          <Entry>
+            <Index>#x2</Index>
+            <SubIndex>5</SubIndex>
+            <BitLen>16</BitLen>
+            <Name>Deceleration</Name>
+            <DataType>UINT</DataType>
+          </Entry>
+          
+          <!-- Byte 16: Execute (strobe/latch bit) -->
+          <Entry>
+            <Index>#x2</Index>
+            <SubIndex>6</SubIndex>
+            <BitLen>8</BitLen>
+            <Name>Execute</Name>
+            <DataType>BYTE</DataType>
+          </Entry>
+          
+          <!-- Byte 17-19: Padding/Reserved -->
+          <Entry>
+            <Index>#x2</Index>
+            <SubIndex>0</SubIndex>
+            <BitLen>24</BitLen>
+          </Entry>
+        </RxPdo>
+
+        <!-- ====================================================================
+             TxPdo (Transmit PDO) - DRIVE to PLC (Inputs)
+             Index: 0x1A00 - Status feedback PDO
+             ==================================================================== -->
+        <TxPdo Fixed="1" Mandatory="1" Sm="1">
+          <Index>#x1A00</Index>
+          <Name>Status</Name>
+          
+          <!-- Byte 0-3: Actual position (encoder counts) -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>1</SubIndex>
+            <BitLen>32</BitLen>
+            <Name>Actual position</Name>
+            <DataType>DINT</DataType>
+          </Entry>
+          
+          <!-- Byte 4: Amplifiers enabled -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>2</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Amplifiers enabled</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 4: End stop (either end) -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>3</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>End stop</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 4: Thermal protection 1 -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>4</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Thermal protection 1</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 4: Thermal protection 2 -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>5</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Thermal protection 2</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 4: Force zero -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>6</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Force zero</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 4: Motor on -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>7</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Motor on</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 5: Closed loop -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>8</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Closed loop</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 5: Encoder index found -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>9</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Encoder index</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 5: Encoder valid -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>10</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Encoder valid</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 5: Searching index -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>11</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Searching index</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 5: Position reached -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>12</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Position reached</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 5: Error compensation active -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>13</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Error compensation</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 5: Encoder error -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>14</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Encoder error</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 5: Scanning mode active -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>15</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Scanning</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 6: Left end stop triggered -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>16</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Left end stop</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 6: Right end stop triggered -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>17</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Right end stop</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 6: Error limit triggered -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>18</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Error limit</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 6: Searching optimal frequency -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>19</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Searching optimal frequency</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 6: Safety timeout triggered -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>20</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Safety timeout</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 6: Execute acknowledge -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>21</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Execute ack</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 6: Emergency stop -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>22</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Emergency stop</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 6: Position fail triggered -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>23</SubIndex>
+            <BitLen>1</BitLen>
+            <Name>Position fail</Name>
+            <DataType>BOOL</DataType>
+          </Entry>
+          
+          <!-- Byte 7-8: Padding/Reserved (2 bits) -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>0</SubIndex>
+            <BitLen>2</BitLen>
+          </Entry>
+          
+          <!-- Byte 8: Slot/Channel ID -->
+          <Entry>
+            <Index>#x1</Index>
+            <SubIndex>24</SubIndex>
+            <BitLen>8</BitLen>
+            <Name>Slot</Name>
+            <DataType>BYTE</DataType>
+          </Entry>
+        </TxPdo>
+
+        <Dc>
+          <OpMode>
+            <Name>SM_Sync or Async</Name>
+            <Desc>SM_Sync or Async</Desc>
+            <AssignActivate>#x0000</AssignActivate>
+          </OpMode>
+        </Dc>
+
+        <Eeprom>
+          <ByteSize>2048</ByteSize>
+          <ConfigData>8001006EFF00FF000000</ConfigData>
+        </Eeprom>
+      </Device>
+    </Devices>
+  </Descriptions>
+</EtherCATInfo>

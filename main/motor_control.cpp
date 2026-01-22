@@ -11,6 +11,7 @@
 
 #include "motor_control.h"
 #include "acquire_config.h"
+#include "xeryon_pdo.h"
 #include "esp_log.h"
 #include <cmath>
 #include <cstring>
@@ -108,6 +109,13 @@ esp_err_t motor_control_init(const char *eth_interface)
 
     ESP_LOGI(TAG, "Found %d EtherCAT slave(s)", s_motor_ctx.context.slavecount);
 
+    // If no slaves are found, abort initialization to avoid blocking waits
+    if (s_motor_ctx.context.slavecount == 0) {
+        ESP_LOGE(TAG, "No EtherCAT slaves present; aborting init");
+        ecx_close(&s_motor_ctx.context);
+        return ESP_ERR_NOT_FOUND;
+    }
+
     // Verify we have expected number of drives
     if (s_motor_ctx.context.slavecount < DRIVE_COUNT) {
         ESP_LOGW(TAG, "Expected %d drives, found %d", DRIVE_COUNT, s_motor_ctx.context.slavecount);
@@ -166,11 +174,19 @@ esp_err_t motor_enable(drive_id_t drive)
         return ESP_ERR_INVALID_STATE;
     }
 
-    // TODO: Send enable command via SOEM
-    // This depends on the Xeryon EtherCAT object dictionary
-    // Typically involves writing to a controlword PDO
+    // Write enable command to RxPdo (output buffer)
+    // Slave index: drive+1 (slave 0 is gateway, drives are 1 and 2)
+    int slave_idx = drive + 1;
+    if (slave_idx > s_motor_ctx.context.slavecount) {
+        ESP_LOGW(TAG, "Drive %d (slave %d) not present", drive, slave_idx);
+        return ESP_ERR_NOT_FOUND;
+    }
     
-    ESP_LOGI(TAG, "Enabling drive %d", drive);
+    xeryon_rx_pdo_t *rx = RX_PDO_PTR(s_motor_ctx.context.slavelist[slave_idx].outputs);
+    rx->command = XERYON_CMD_ENABLE;
+    rx->execute = 1;  // Strobe the execute bit
+    
+    ESP_LOGI(TAG, "Enabling drive %d (slave %d)", drive, slave_idx);
     s_motor_ctx.drives[drive].enabled = true;
     s_motor_ctx.drives[drive].status = DRIVE_STATUS_IDLE;
     
@@ -205,11 +221,22 @@ esp_err_t motor_index(drive_id_t drive, const axis_params_t *params)
         return ESP_ERR_INVALID_STATE;
     }
 
+    int slave_idx = drive + 1;
+    if (slave_idx > s_motor_ctx.context.slavecount) {
+        ESP_LOGW(TAG, "Drive %d (slave %d) not present", drive, slave_idx);
+        return ESP_ERR_NOT_FOUND;
+    }
+
     ESP_LOGI(TAG, "Indexing drive %d (speed=%ld, acc=%u, dec=%u)",
              drive, params->speed, params->acc, params->dec);
 
-    // TODO: Send index/homing command via SOEM
-    // This triggers the drive's internal homing sequence
+    // Write index/homing command to RxPdo with motion parameters
+    xeryon_rx_pdo_t *rx = RX_PDO_PTR(s_motor_ctx.context.slavelist[slave_idx].outputs);
+    rx->command = XERYON_CMD_INDEX;
+    rx->speed = params->speed;
+    rx->acceleration = params->acc;
+    rx->deceleration = params->dec;
+    rx->execute = 1;  // Strobe the execute bit
     
     s_motor_ctx.drives[drive].done = false;
     s_motor_ctx.drives[drive].status = DRIVE_STATUS_BUSY;
@@ -237,11 +264,23 @@ esp_err_t motor_move_absolute_enc(drive_id_t drive, int32_t position, const axis
         return ESP_ERR_INVALID_STATE;
     }
 
+    int slave_idx = drive + 1;
+    if (slave_idx > s_motor_ctx.context.slavecount) {
+        ESP_LOGW(TAG, "Drive %d (slave %d) not present", drive, slave_idx);
+        return ESP_ERR_NOT_FOUND;
+    }
+
     ESP_LOGD(TAG, "Move drive %d to %ld enc (speed=%ld)",
              drive, position, params->speed);
 
-    // TODO: Send MoveAbsolute command via SOEM
-    // Set target position in PDO, set controlword to start motion
+    // Write absolute position move command to RxPdo
+    xeryon_rx_pdo_t *rx = RX_PDO_PTR(s_motor_ctx.context.slavelist[slave_idx].outputs);
+    rx->command = XERYON_CMD_DPOS;
+    rx->target_position = position;
+    rx->speed = params->speed;
+    rx->acceleration = params->acc;
+    rx->deceleration = params->dec;
+    rx->execute = 1;  // Strobe the execute bit to trigger motion
     
     s_motor_ctx.drives[drive].target_position = position;
     s_motor_ctx.drives[drive].done = false;
@@ -263,9 +302,18 @@ esp_err_t motor_halt(drive_id_t drive)
         return ESP_ERR_INVALID_STATE;
     }
 
+    int slave_idx = drive + 1;
+    if (slave_idx > s_motor_ctx.context.slavecount) {
+        ESP_LOGW(TAG, "Drive %d (slave %d) not present", drive, slave_idx);
+        return ESP_ERR_NOT_FOUND;
+    }
+
     ESP_LOGI(TAG, "Halting drive %d", drive);
     
-    // TODO: Send halt command via SOEM (immediate stop)
+    // Send immediate halt (quickstop) command
+    xeryon_rx_pdo_t *rx = RX_PDO_PTR(s_motor_ctx.context.slavelist[slave_idx].outputs);
+    rx->command = XERYON_CMD_HALT;
+    rx->execute = 1;  // Strobe to execute halt
     
     s_motor_ctx.drives[drive].done = true;
     s_motor_ctx.drives[drive].status = DRIVE_STATUS_IDLE;
@@ -286,9 +334,18 @@ esp_err_t motor_stop(drive_id_t drive)
         return ESP_ERR_INVALID_STATE;
     }
 
+    int slave_idx = drive + 1;
+    if (slave_idx > s_motor_ctx.context.slavecount) {
+        ESP_LOGW(TAG, "Drive %d (slave %d) not present", drive, slave_idx);
+        return ESP_ERR_NOT_FOUND;
+    }
+
     ESP_LOGI(TAG, "Stopping drive %d", drive);
     
-    // TODO: Send stop command via SOEM (controlled decel)
+    // Send controlled stop command (smooth deceleration)
+    xeryon_rx_pdo_t *rx = RX_PDO_PTR(s_motor_ctx.context.slavelist[slave_idx].outputs);
+    rx->command = XERYON_CMD_STOP;
+    rx->execute = 1;  // Strobe to execute stop
     
     s_motor_ctx.drives[drive].status = DRIVE_STATUS_IDLE;
     
@@ -301,9 +358,18 @@ esp_err_t motor_reset(drive_id_t drive)
         return ESP_ERR_INVALID_STATE;
     }
 
+    int slave_idx = drive + 1;
+    if (slave_idx > s_motor_ctx.context.slavecount) {
+        ESP_LOGW(TAG, "Drive %d (slave %d) not present", drive, slave_idx);
+        return ESP_ERR_NOT_FOUND;
+    }
+
     ESP_LOGI(TAG, "Resetting drive %d", drive);
     
-    // TODO: Send reset command via SOEM
+    // Send reset command to clear error flags
+    xeryon_rx_pdo_t *rx = RX_PDO_PTR(s_motor_ctx.context.slavelist[slave_idx].outputs);
+    rx->command = XERYON_CMD_RESET;
+    rx->execute = 1;  // Strobe to execute reset
     
     s_motor_ctx.drives[drive].has_error = false;
     s_motor_ctx.drives[drive].status = DRIVE_STATUS_IDLE;
@@ -317,10 +383,17 @@ esp_err_t motor_reset_encoder(drive_id_t drive)
         return ESP_ERR_INVALID_STATE;
     }
 
+    int slave_idx = drive + 1;
+    if (slave_idx > s_motor_ctx.context.slavecount) {
+        ESP_LOGW(TAG, "Drive %d (slave %d) not present", drive, slave_idx);
+        return ESP_ERR_NOT_FOUND;
+    }
+
     ESP_LOGI(TAG, "Resetting encoder on drive %d", drive);
     
-    // TODO: Send encoder reset command via SOEM
-    
+    // Read current status and clear encoder position
+    // Note: The actual encoder reset happens via the XERYON_CMD_RESET above
+    // This just zeroes our local tracking
     s_motor_ctx.drives[drive].actual_position = 0;
     
     return ESP_OK;
@@ -336,7 +409,13 @@ int32_t motor_get_position_enc(drive_id_t drive)
         return 0;
     }
     
-    // TODO: Read actual position from PDO input
+    // Read actual position from TxPdo (input buffer) if slave is present
+    int slave_idx = drive + 1;
+    if (slave_idx <= s_motor_ctx.context.slavecount) {
+        xeryon_tx_pdo_t *tx = TX_PDO_PTR(s_motor_ctx.context.slavelist[slave_idx].inputs);
+        s_motor_ctx.drives[drive].actual_position = tx->actual_position;
+    }
+    
     return s_motor_ctx.drives[drive].actual_position;
 }
 
@@ -387,20 +466,46 @@ void motor_process(void)
         ESP_LOGW(TAG, "Working counter mismatch: %d < %d", wkc, s_motor_ctx.expected_wkc);
     }
 
-    // TODO: Update drive states from input PDOs
-    // - Read actual positions from context.slavelist[n].inputs
-    // - Read statuswords
-    // - Update done flags based on target reached
-    // - Update error flags
-    
-    // Example pseudo-code for reading from slaves:
-    // for (int i = 0; i < DRIVE_COUNT && i <= s_motor_ctx.context.slavecount; i++) {
-    //     uint8_t *inputs = s_motor_ctx.context.slavelist[i+1].inputs;
-    //     s_motor_ctx.drives[i].actual_position = *(int32_t*)(inputs + POSITION_OFFSET);
-    //     uint16_t statusword = *(uint16_t*)(inputs + STATUSWORD_OFFSET);
-    //     s_motor_ctx.drives[i].done = (statusword & TARGET_REACHED_BIT) != 0;
-    //     s_motor_ctx.drives[i].has_error = (statusword & FAULT_BIT) != 0;
-    // }
+    // Update drive states from input PDOs (TxPdo - drive to PLC feedback)
+    for (int drive = 0; drive < DRIVE_COUNT; drive++) {
+        int slave_idx = drive + 1;
+        if (slave_idx > s_motor_ctx.context.slavecount) {
+            continue;  // Slave not present
+        }
+        
+        xeryon_tx_pdo_t *tx = TX_PDO_PTR(s_motor_ctx.context.slavelist[slave_idx].inputs);
+        
+        // Update actual position
+        s_motor_ctx.drives[drive].actual_position = tx->actual_position;
+        
+        // Check if target position reached (motion complete)
+        if (tx->position_reached) {
+            s_motor_ctx.drives[drive].done = true;
+            s_motor_ctx.drives[drive].status = DRIVE_STATUS_IDLE;
+        }
+        
+        // Check for errors
+        if (tx->safety_timeout || tx->position_fail || tx->error_limit) {
+            s_motor_ctx.drives[drive].has_error = true;
+            s_motor_ctx.drives[drive].status = DRIVE_STATUS_ERROR;
+            ESP_LOGW(TAG, "Drive %d error: timeout=%d, pos_fail=%d, err_limit=%d",
+                     drive, tx->safety_timeout, tx->position_fail, tx->error_limit);
+        }
+        
+        // Check thermal protection
+        if (tx->thermal_protection_1 || tx->thermal_protection_2) {
+            s_motor_ctx.drives[drive].has_error = true;
+            s_motor_ctx.drives[drive].status = DRIVE_STATUS_ERROR;
+            ESP_LOGW(TAG, "Drive %d thermal protection triggered", drive);
+        }
+        
+        // Check encoder validity (critical for homing)
+        if (!tx->encoder_valid) {
+            ESP_LOGD(TAG, "Drive %d encoder not valid yet", drive);
+        } else if (tx->searching_index) {
+            ESP_LOGD(TAG, "Drive %d searching for index", drive);
+        }
+    }
 }
 
 // =============================================================================

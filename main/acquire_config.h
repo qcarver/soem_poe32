@@ -11,6 +11,16 @@ extern "C" {
 #endif
 
 // =============================================================================
+// EtherCAT Slave ID Configuration
+// =============================================================================
+
+/** EtherCAT Device ID for Tilt motor */
+#define ETHERCAT_ID_TILT            1001
+
+/** EtherCAT Device ID for Pan motor */
+#define ETHERCAT_ID_PAN             1002
+
+// =============================================================================
 // Encoder Configuration
 // =============================================================================
 
@@ -93,10 +103,10 @@ extern "C" {
 #define POWER_SENSOR_REG2           0x69
 
 /** I2C SDA GPIO pin */
-#define I2C_SDA_GPIO                2
+#define I2C_SDA_GPIO                16
 
 /** I2C SCL GPIO pin */
-#define I2C_SCL_GPIO                15
+#define I2C_SCL_GPIO                13
 
 /** I2C clock frequency (Hz) */
 #define I2C_FREQ_HZ                 100000
